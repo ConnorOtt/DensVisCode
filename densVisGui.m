@@ -22,7 +22,7 @@ function varargout = densVisGui(varargin)
 
 % Edit the above text to modify the response to help densVisGui
 
-% Last Modified by GUIDE v2.5 25-Sep-2018 12:07:47
+% Last Modified by GUIDE v2.5 26-Sep-2018 10:35:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -51,6 +51,16 @@ function densVisGui_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to densVisGui (see VARARGIN)
+
+%Create tab group
+handles.tgroup = uitabgroup('Parent', handles.tabPanel,'TabLocation', 'left');
+handles.tab1 = uitab('Parent', handles.tgroup, 'Title', '2D Projection');
+handles.tab2 = uitab('Parent', handles.tgroup, 'Title', '3D Projection');
+%Place panels into each tab
+set(handles.pan2d,'Parent',handles.tab1)
+set(handles.pan3d,'Parent',handles.tab2)
+%Reposition each panel to same location as panel 1
+set(handles.pan3d,'position',get(handles.pan2d,'position'));
 
 % Choose default command line output for densVisGui
 handles.output = hObject;
@@ -118,3 +128,26 @@ function densVaryOn_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of densVaryOn
+
+
+% --- Executes on selection change in chooseView.
+function chooseView_Callback(hObject, eventdata, handles)
+% hObject    handle to chooseView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns chooseView contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from chooseView
+
+
+% --- Executes during object creation, after setting all properties.
+function chooseView_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to chooseView (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end

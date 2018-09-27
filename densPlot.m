@@ -70,23 +70,27 @@ for i = 1:numFields
     densFieldVary(:, :, i) = densField*densModVec(i);
 end
 
-%% Animating to GUI
+%% Setting up axis
 % 2D Plot - Animated by moving coastlines under 0 deg LST
 ax = axesm('MapProjection','robinson','Frame','on', 'grid', 'on'); % Map axis
-set(ax, 'parent', handles.uipanel3);
+set(ax, 'parent', handles.pan2d);
 currentSurf = surfm(latMesh, LSTMesh, densField, ...
                     'facecolor', 'interp', ...
                     'parent', ax);
 cBar = colorbar;
 cBar.Label.String = 'Atmospheric Density [kg/km^3]'; 
 
-densFloor = min(min(min(densFieldVary)));
+% Need to set minimum and maximum colorbar scale or else it'll all look the
+% same with my example. 
+densFloor = min(min(min(densFieldVary))); 
 densMax = max(max(max(densFieldVary)));
 caxis([densFloor, densMax]);
 caxis manual
 xlabel('Local Sidereal Time [deg]')
 ylabel('Latitude [deg]');
 
+
+%% Plotting and animating (officially)
 % Initializing variables and loading coastline data. 
 load coastlines
 pCoast = [];
@@ -140,12 +144,7 @@ end
 
 
 
-
-
-
-
-
-
+%%% Pieces of Code that I decided weren't necessary at this point. 
 %% Density at satellite observation times
 
 % latMeas = lat_lst_meas_array(:, 1)*180/pi;
@@ -170,7 +169,8 @@ end
 % title('Spherical Density Field Plot');
 % sphPlot = surf(x, y, z, densField, 'edgecolor', 'none');
 % 
-% view(0, -23.5);
+% view(0, 23.5);
+% rotate3d on;
 % axis equal
 % c = colorbar;
 % c.Label.String = 'Density kg/km^3';

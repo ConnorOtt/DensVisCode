@@ -98,18 +98,41 @@ pPath = [];
 pSat = [];
 densTimeEffects = 1;
 j = 1; % For iterating through density field variations. 
+currentTab = handles.tgroup.SelectedTab; 
 for i = 1:numSteps % 1 step = 180 sec;
+%     disp(currentTab.Title)
+    if handles.tgroup.SelectedTab ~= currentTab        
+        currentTab = handles.tgroup.SelectedTab;
+        currentPan = get(currentTab, 'children');
+        delete(currentSurf);
+        delete(ax);
+        switch(currentTab.Title)
+            case '2D Projection'
+                ax = axesm('MapProjection', 'robinson', ...
+                           'Frame', 'on', ...
+                           'grid', 'on'); 
+            case '3D Projection'
+                ax = axesm('globe', 'grid', 'on');
+                view(0, 23.5);
+                rotate3d on;
+                axis equal
+        end
+        set(ax, 'Parent', currentPan);
+        cBar = colorbar;
+        cBar.Label.String = 'Atmospheric Density [kg/km^3]';
+        caxis([densFloor, densMax]);
+        caxis manual
+    end
     
     % Plotting Density field as it updates with temporal effects.
-    if densTimeEffects
-        if ~mod(i, floor(numSteps/numFields))
-            delete(currentSurf);
-            currentSurf = surfm(latMesh, LSTMesh, densFieldVary(:, :, j), ...
-                                'facecolor', 'interp', ...
-                                'parent', ax);
-            j = j + 1;
-        end
+    if ~mod(i, floor(numSteps/numFields))
+        delete(currentSurf);
+        currentSurf = surfm(latMesh, LSTMesh, densFieldVary(:, :, j), ...
+            'facecolor', 'interp', ...
+            'parent', ax);
+        j = j + 1;
     end
+    
     % Shifting longitudes with each time step and wrapping back to -180deg.
     coastlon = coastlon + degPerStep;
     overLapC = coastlon > 180;

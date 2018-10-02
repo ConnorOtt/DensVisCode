@@ -22,7 +22,7 @@ function varargout = densVisGui(varargin)
 
 % Edit the above text to modify the response to help densVisGui
 
-% Last Modified by GUIDE v2.5 26-Sep-2018 10:35:30
+% Last Modified by GUIDE v2.5 01-Oct-2018 22:24:50
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -52,8 +52,13 @@ function densVisGui_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to densVisGui (see VARARGIN)
 
+% @(hObject,eventdata)densVisGui('tgroup_SelectionChangedFcn',hObject,...
+%                                             eventdata,guidata(hObject));
 %Create tab group
-handles.tgroup = uitabgroup('Parent', handles.tabPanel,'TabLocation', 'left');
+handles.tgroup = uitabgroup('Parent', handles.tabPanel,...
+                            'TabLocation', 'left',  ...
+                          'SelectionChangedFcn',...
+                          {@tgroup_SelectionChangedFcn,handles.figure1});
 handles.tab1 = uitab('Parent', handles.tgroup, 'Title', '2D Projection');
 handles.tab2 = uitab('Parent', handles.tgroup, 'Title', '3D Projection');
 %Place panels into each tab
@@ -111,7 +116,6 @@ function showCoast_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of showCoast
 
-
 % --- Executes on button press in showTrack.
 function showTrack_Callback(hObject, eventdata, handles)
 % hObject    handle to showTrack (see GCBO)
@@ -120,34 +124,33 @@ function showTrack_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of showTrack
 
-
-% --- Executes on button press in densVaryOn.
-function densVaryOn_Callback(hObject, eventdata, handles)
-% hObject    handle to densVaryOn (see GCBO)
+% --- Executes on button press in showChange.
+function showChange_Callback(hObject, eventdata, handles)
+% hObject    handle to showChange (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+if handles.showChange.Value
+    handles.showTrack.Value = 0;
+    handles.showCoast.Value = 0;
+    handles.showTrack.Enable = 'off';
+    handles.showCoast.Enable = 'off';
+else    
+    handles.showTrack.Enable = 'on';
+    handles.showCoast.Enable = 'on';
+end
 
-% Hint: get(hObject,'Value') returns toggle state of densVaryOn
+% Hint: get(hObject,'Value') returns toggle state of showChange
 
-
-% --- Executes on selection change in chooseView.
-function chooseView_Callback(hObject, eventdata, handles)
-% hObject    handle to chooseView (see GCBO)
+% --- Executes on selection change of tabs in tgroup tab group.
+function tgroup_SelectionChangedFcn(hObject, eventdata, hGUI)
+% hObject    handle to tgroup (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns chooseView contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from chooseView
-
-
-% --- Executes during object creation, after setting all properties.
-function chooseView_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to chooseView (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+handles = guidata( hGUI );
+handles.showChange.Enable = 'off';
+handles.showChange.Value = 0;
+handles.showTrack.Enable = 'on';
+handles.showCoast.Enable = 'on';
+if handles.tgroup.SelectedTab == handles.tab2      
+    handles.showChange.Enable = 'on';
 end

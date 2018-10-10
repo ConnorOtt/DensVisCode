@@ -17,7 +17,7 @@
 %       besided the visualization. 
 %
 % Created: 9/3/2018 - Connor Ott
-% Last Modified: 9/28/2018 - Connor Ott
+% Last Modified: 10/7/2018 - Connor Ott
 %--------------------------------------------------------------------------
 
 function [] = densPlot(fileName, handles)
@@ -28,10 +28,14 @@ load(fileName);
 % Start unpacking final_density_grid_truth
 % Rows - Latitude values, 5 deg resolution
 % Cols - Local Sidereal time, 5 deg resolution
-densField = final_density_grid_truth; % Kind of a mouthful
+
+densFieldVary = final_density_grid_truth_timeSeries; % Kind of a mouthful
+densFieldVary = permute(densFieldVary, [2, 3, 1]);
+densFieldDiff = diff(densFieldVary, 1, 3);
+
 
 % Getting latitude and LST grids
-[numLat, numLST] = size(densField);
+[numLat, numLST, numFields] = size(densFieldVary);
 latVec = linspace(-90, 90, numLat);
 LSTvec = linspace(-180, 180, numLST);
 [latMesh, LSTMesh] = meshgrid(latVec, LSTvec);
@@ -40,7 +44,7 @@ LSTMesh = LSTMesh';
 
 
 %% Setting up the ground track and animation timing 
-numSats = 9;
+numSats = true_state_all_times(end, 2);
 lenSat = length(true_state_all_times)/numSats;
 satIDX = lenSat+1:2*lenSat; % Indices of a single satellite 
 t_f = true_state_all_times(satIDX(end), 1); % [s] - time vector for satellite
@@ -50,22 +54,10 @@ numSteps = lenSat;    % Number of rows in ground track path
 degsSim = 360*tDays;  % total degress rotated over simulation time
 degPerStep = degsSim/numSteps;
 
-% Converting seconds to UTC
-sat_t = seconds(true_state_all_times(satIDX, 1)); % start time
+% Adding epoch of October 10, 2018 00:00:00.000 and converting to UTC
+Oct10_Jan0 = datenum([2018, 10, 10, 0, 0, 0]); % Days to Oct 10, 2018 from Jan 0, 0000
+sat_t = true_state_all_times(satIDX, 1)/86400 + Oct10_Jan0; % adding epoch 
 sat_t = datevec(sat_t); % converting to date-time standard output. 
-
-% This is where its a little messy for the sake of example. Optimally, I
-% would have an observation date/time in UTC that I could just go off of,
-% but I have to make my own date up for this example. Using 9/1/18. 
-sat_t(:, 1) = 2018;
-sat_t(:, 2) = 9; 
-% looking for midnight indices (to increment day count)
-findMN = find(abs(diff(sat_t(:, 4))) == 23); 
-sat_t(:, 3) = 1;
-% Making Days increment - this probably needs its own function
-for i = 1:length(findMN)-1 
-    sat_t(findMN(i)+1:findMN(i+1), 3) = 1 + i;
-end
 
 %% Getting pos data into lat/long (for a single sat for now)
 satPosXYZ = true_state_all_times(satIDX, 3:5)*1000; % [m] XYZ in ECI;
@@ -74,20 +66,20 @@ satLat = satPosLLA(:, 1);
 satLon = satPosLLA(:, 2);
 
 %% Manufacturing temporal effects in the density field (as an example)
-% % I'm thinking just do a sinusoidal thing and modify based on that. 
+% % % I'm thinking just do a sinusoidal thing and modify based on that. 
+% 
+% % Purposely setting numFields to a different number than the number of 
+% % ground track elements to practice having different numbers here.
+% numFields = 100; 
+% 
+% % Sinusoidal variation to be applied to density field
+% densModVec = 1 + 0.2*sin(linspace(0, 6*pi, numFields)); 
+% densFieldVary = zeros(numLat, numLST, numFields);
+% % Polulate time-varying field with values with clumsy for loop. 
+% for i = 1:numFields
+%     densFieldVary(:, :, i) = densField*densModVec(i);
+% end
 
-% Purposely setting numFields to a different number than the number of 
-% ground track elements to practice having different numbers here.
-numFields = 100; 
-
-% Sinusoidal variation to be applied to density field
-densModVec = 1 + 0.2*sin(linspace(0, 6*pi, numFields)); 
-densFieldVary = zeros(numLat, numLST, numFields);
-% Polulate time-varying field with values with clumsy for loop. 
-for i = 1:numFields
-    densFieldVary(:, :, i) = densField*densModVec(i);
-end
-densFieldDiff = diff(densFieldVary, 1, 3);
 
 %% Setting up axis
 % Plot will be animated by moving coastlines, ground tracks, and 
@@ -96,19 +88,14 @@ currentTab = handles.tgroup.SelectedTab;
 currentPan = get(currentTab, 'children');
 switch(currentTab.Title) % choose plotting method based on panel title
     case '2D Projection'
-        ax = axesm('MapProjection', 'robinson', ...
-                   'Frame', 'on', ...
-                   'grid', 'on');
+        ax = createDensPlotAxis('robinson', densFieldVary, currentPan);
     case '3D Projection'
-        ax = axesm('globe', 'grid', 'on');
-        view(30, 23.5);
-        rotate3d on; % allow the user to pan
-        axis equal
+        ax = createDensPlotAxis('globe', densFieldVary, currentPan);
     case 'Other tabs?...'
 end
 % Setting axis to plot to and plotting. 
-set(ax, 'parent', currentPan);
-currentSurf = surfm(latMesh, LSTMesh, densField, ...
+densFieldInit = densFieldVary(:, :, 1);
+currentSurf = surfm(latMesh, LSTMesh, densFieldInit, ...
     'facecolor', 'interp', ...
     'parent', ax);
 % Building a quick colormap that I want
@@ -130,7 +117,7 @@ caxis([densMin, densMax]);
 % the animation
 caxis manual 
 
-% Debating on including these, they're a little wied looking honestly.
+% Debating on including these, they're a little wierd looking honestly.
 % I have to put them in somehow but this is not a good way. 
 % xlabel('Local Sidereal Time [deg]')
 % ylabel('Latitude [deg]');
@@ -173,6 +160,10 @@ for i = 1:numSteps % 1 step = 180 sec;
             case '3D Projection'
                 ax = axesm('globe', 'grid', 'on');
                 view(0, 23.5);
+                quiver3(0, 0, 0, 0, 0, 1.8, 'k', 'linewidth', 1.1);
+                text(0, 0, 1.8, '\omega_{E}');
+                quiver3(0, 0, 0, 1.8, 0, 0, 'r', 'linewidth', 1.1);
+                text(1.8, 0, 0, 'to Sun');
                 rotate3d on;
                 axis equal
                 
@@ -248,7 +239,7 @@ for i = 1:numSteps % 1 step = 180 sec;
     if handles.showTrack.Value
         % Groundtrack overlay
         pPath = plotm(satLat(1:i), satLon(1:i), 'r', 'parent', ax);
-        pSat = plotm(satLat(i), satLon(i), 'k.', 'linewidth', 25);
+%         pSat = plotm(satLat(i), satLon(i), 'k.', 'linewidth', 25);
     end
 
     
@@ -256,9 +247,9 @@ for i = 1:numSteps % 1 step = 180 sec;
     % Update clock to show current simualation time
     set(handles.timeUpdate, 'string', datestr(sat_t(i, :), 31));
 
-    pause(0.05);
+%     pause(0.05);
     %% Update plot
-    drawnow % Update plot (updates the plot)
+    drawnow limitrate % Update plot (updates the plot)
 end
 
 %%%%% Pieces of Code that I decided weren't necessary at this point. %%%%%%
